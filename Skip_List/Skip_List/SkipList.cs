@@ -32,73 +32,140 @@ namespace Skip_List
         public bool IsReadOnly => false;
 
         private Node head;
+        private Random gen = new Random();
+
+        public SkipList()
+        {
+            Count = 0;
+            head = new Node(1, default(T));
+        }
 
         public int ChooseRandomHeight(int max)
         {
-            Random gen = new Random();
             int height = 1;
-
-            int coin = gen.Next(0, 2); // 0 is head, 1 is tail
-            while (coin == 0 && height < max)
+            while (gen.Next(0, 2) == 0 && height < max)
             {
                 height++;
-                coin = gen.Next(0, 2);
             }
             return height;
         }
 
         public void Add(T item)
         {
+            Count++;
             Node temp = new Node(ChooseRandomHeight(head.Height + 1), item);
+
+            if (temp.Height > head.Height)
+            {
+                head.Skips.Add(null);
+            }
 
             int level = head.Height - 1;
             Node curr = head;
             while (level >= 0)
             {
-                if (curr.Skips[level] == null || item.CompareTo(curr.Skips[level].Value) > 0)
+                if (curr.Skips[level] == null || item.CompareTo(curr.Skips[level].Value) < 0)
                 {
                     //if we can link the new node at this level
                     //link the new node in
-
+                    if (temp.Height > level)
+                    {
+                        //linking in
+                        temp.Skips[level] = curr.Skips[level];
+                        curr.Skips[level] = temp;
+                    }
                     //move down
+                    level--;
+
                 }
                 else
                 {
                     //move right
+                    curr = curr.Skips[level];
                 }
             }
         }
 
         public bool Remove(T item)
         {
-            throw new NotImplementedException();
+            int level = head.Height - 1;
+            Node curr = head;
+            bool found = false;
+            while (level >= 0)
+            {
+                if (curr.Skips[level] == null || item.CompareTo(curr.Skips[level].Value) <= 0)
+                {
+                    if (curr.Skips[level] != null && item.CompareTo(curr.Skips[level].Value) == 0)
+                    {
+                        found = true;
+                        curr.Skips[level] = curr.Skips[level].Skips[level];
+                    }
+                    level--;
+                }
+                else
+                {
+                    curr = curr.Skips[level];
+                }
+
+            }
+            if (found)
+            {
+                Count--;
+            }
+            return found;
         }
 
         public void Clear()
         {
-            throw new NotImplementedException();
+            head.Skips = new List<Node>();
         }
 
         public bool Contains(T item)
         {
-            throw new NotImplementedException();
+            Node curr = head;
+            int level = head.Height - 1;
+            while (level >= 0)
+            {
+                int comp = item.CompareTo(curr.Skips[level].Value);
+                if (curr.Skips[level] == null || comp < 0)
+                {
+                    if (comp > 0)
+                    {
+                        level--;
+                    }
+                    if (comp < 0)
+                    {
+                        curr = curr.Skips[level];
+                    }
+                    if (comp == 0)
+                    {
+                        return true;
+                    }
+                    return false;
+                }
+            }
+            return false;
         }
 
         public void CopyTo(T[] array, int arrayIndex)
         {
+
             throw new NotImplementedException();
         }
 
         public IEnumerator<T> GetEnumerator()
         {
-            throw new NotImplementedException();
+            Node curr = head;
+            while (curr.Skips[0] != null)
+            {
+                yield return curr.Skips[0].Value;
+                curr = curr.Skips[0];
+            }
         }
-
-
 
         IEnumerator IEnumerable.GetEnumerator()
         {
-            throw new NotImplementedException();
+            return GetEnumerator();
         }
 
 
